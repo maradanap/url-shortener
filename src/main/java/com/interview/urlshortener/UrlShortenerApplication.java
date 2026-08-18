@@ -1,4 +1,4 @@
-package com.interview.url_shortener;
+package com.interview.urlshortener;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
