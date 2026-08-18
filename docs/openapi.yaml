@@ -1,0 +1,341 @@
+openapi: 3.0.3
+
+info:
+  title: URL Shortener API
+  version: 1.0.0
+  description: >
+    API for creating, resolving, inspecting, disabling and retrieving
+    analytics for shortened URLs.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: URLs
+    description: URL creation and management
+  - name: Redirect
+    description: Short URL resolution
+  - name: Analytics
+    description: Redirect analytics
+  - name: Operations
+    description: Application health
+
+paths:
+  /api/v1/urls:
+    post:
+      tags:
+        - URLs
+      summary: Create a short URL
+      operationId: createShortUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShortUrlRequest"
+            examples:
+              withCustomAlias:
+                summary: Create a short URL using a custom alias
+                value:
+                  url: https://example.com/products/123
+                  customAlias: pm-demo-01
+                  expiresAt: "2026-12-31T23:59:59Z"
+              withGeneratedCode:
+                summary: Create a short URL using a generated code
+                value:
+                  url: https://example.com/products/123
+      responses:
+        "201":
+          description: Short URL created
+          headers:
+            Location:
+              required: true
+              description: Newly created short URL
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShortUrlResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/urls/{shortCode}:
+    parameters:
+      - $ref: "#/components/parameters/ShortCode"
+
+    get:
+      tags:
+        - URLs
+      summary: Retrieve short URL metadata
+      operationId: getShortUrlMetadata
+      responses:
+        "200":
+          description: Short URL metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShortUrlResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags:
+        - URLs
+      summary: Disable a short URL
+      description: >
+        Performs a soft delete. The URL remains available for metadata
+        and analytics retrieval but can no longer redirect.
+      operationId: disableShortUrl
+      responses:
+        "204":
+          description: URL disabled successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/urls/{shortCode}/analytics:
+    parameters:
+      - $ref: "#/components/parameters/ShortCode"
+
+    get:
+      tags:
+        - Analytics
+      summary: Retrieve redirect analytics
+      operationId: getShortUrlAnalytics
+      responses:
+        "200":
+          description: Redirect analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /{shortCode}:
+    parameters:
+      - $ref: "#/components/parameters/ShortCode"
+
+    get:
+      tags:
+        - Redirect
+      summary: Redirect to the original URL
+      operationId: redirectShortUrl
+      responses:
+        "302":
+          description: Redirect to the original destination
+          headers:
+            Location:
+              required: true
+              description: Original destination URL
+              schema:
+                type: string
+                format: uri
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410":
+          $ref: "#/components/responses/Gone"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /actuator/health:
+    get:
+      tags:
+        - Operations
+      summary: Check application health
+      operationId: getHealth
+      responses:
+        "200":
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+components:
+  parameters:
+    ShortCode:
+      name: shortCode
+      in: path
+      required: true
+      description: Generated code or custom alias
+      schema:
+        type: string
+        minLength: 4
+        maxLength: 32
+        pattern: "^[A-Za-z0-9_-]{4,32}$"
+      example: pm-demo-01
+
+  schemas:
+    CreateShortUrlRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+          description: HTTP or HTTPS destination URL
+          example: https://example.com/products/123
+        customAlias:
+          type: string
+          nullable: true
+          minLength: 4
+          maxLength: 32
+          pattern: "^[A-Za-z0-9_-]{4,32}$"
+          description: Optional caller-selected alias
+          example: pm-demo-01
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Optional future expiration time in UTC
+          example: "2026-12-31T23:59:59Z"
+
+    ShortUrlResponse:
+      type: object
+      required:
+        - shortCode
+        - shortUrl
+        - originalUrl
+        - createdAt
+        - active
+      properties:
+        shortCode:
+          type: string
+          example: pm-demo-01
+        shortUrl:
+          type: string
+          format: uri
+          example: http://localhost:8080/pm-demo-01
+        originalUrl:
+          type: string
+          format: uri
+          example: https://example.com/products/123
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        active:
+          type: boolean
+          example: true
+
+    AnalyticsResponse:
+      type: object
+      required:
+        - shortCode
+        - totalClicks
+      properties:
+        shortCode:
+          type: string
+          example: pm-demo-01
+        totalClicks:
+          type: integer
+          format: int64
+          minimum: 0
+          example: 5
+        lastAccessedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ApiError:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+        - fieldErrors
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Request validation failed
+        path:
+          type: string
+          example: /api/v1/urls
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            url: URL is required
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: UP
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    NotFound:
+      description: Short code does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    Conflict:
+      description: Custom alias is already in use
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    Gone:
+      description: Short URL is disabled or expired
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    InternalServerError:
+      description: Unexpected internal error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
