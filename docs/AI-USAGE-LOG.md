@@ -1,43 +1,25 @@
-# AI Usage Log
-
-This document records how AI assisted the engineering process while the engineer retained responsibility for decisions, validation, maintainability, and production readiness.
-
-## Usage Principles
-
-- AI outputs are treated as suggestions, not automatically accepted solutions.
-- The engineer reviews and validates all generated artifacts.
-- High-impact changes require explicit engineer approval.
-- Accepted code must pass automated and manual validation.
-- Rejected or modified recommendations are documented.
-
 ## AI Assistance Records
 
-| ID | Task | Prompt Intent | AI Output | Engineer Decision | Validation |
-|---|---|---|---|---|---|
-| AI-01 | Requirements decomposition | Identify requirements and ambiguities | Pending | Pending | Pending |
-| AI-02 | Architecture design | Propose modular architecture | Pending | Pending | Pending |
-| AI-03 | Test generation | Identify boundary and failure tests | Pending | Pending | Pending |
-| AI-04 | Concurrency review | Review duplicate-alias handling | Pending | Pending | Pending |
-| AI-05 | Security review | Identify security risks and controls | Pending | Pending | Pending |
+| ID | Task | AI Contribution | Engineer Decision | Validation |
+|---|---|---|---|---|
+| AI-01 | Requirement decomposition | Proposed APIs, decisions, risks and non-goals | Accepted with scope adjustments | Requirements review |
+| AI-02 | Local architecture | Proposed H2, Flyway and Caffeine because PostgreSQL and Redis were unavailable | Accepted | Application startup and integration tests |
+| AI-03 | H2 connection configuration | Initial URL included incompatible H2 options | Edited after runtime evidence showed the conflict | Successful startup and persistence check |
+| AI-04 | Service abstraction | Discussed introducing service interfaces and implementation classes | Rejected because one-to-one interfaces added unjustified indirection | Architecture review |
+| AI-05 | Cache design review | Identified Spring proxy self-invocation risk | Accepted; lookup moved to a dedicated Spring bean | Cache integration tests |
+| AI-06 | Automated testing | Proposed unit, service, integration, cache and concurrency tests | Reviewed and accepted with project-specific edits | 56 tests passed with zero failures |
+| AI-07 | Postman validation | Proposed positive and negative API scenarios | Accepted and executed manually | 19 manual scenarios passed |
+| AI-08 | Documentation | Proposed structured engineering evidence | Edited to reflect actual implementation and limitations | Final repository review |
 
-## Detailed Prompt Records
 
-### AI-01: Requirements Decomposition
+## Engineer Ownership
 
-**Intent:** Define the purpose of the AI-assisted task.
+AI was used as an engineering accelerator for decomposition, implementation
+suggestions, test generation, review and documentation.
 
-**Context:** Record the technical and business context supplied to AI.
+No AI output was accepted solely because it was generated. Outputs were
+reviewed against the project constraints, modified when runtime evidence
+contradicted them, and rejected when they introduced unjustified complexity.
 
-**Constraints:** Record the restrictions placed on the response.
-
-**AI recommendation:** Summarize the generated recommendation.
-
-**Engineer decision:** State whether the output was accepted, edited, or rejected.
-
-**Rationale:** Explain why the decision was made.
-
-**Validation:** Record the tests, review, or manual checks performed.
-
-## Rejected Recommendations
-
-Document at least one AI recommendation that was rejected and explain why it was unsuitable.
+The engineer owns the final implementation, architecture decisions,
+test evidence, limitations and production-readiness assessment.
