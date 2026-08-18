@@ -20,18 +20,17 @@ import java.util.HexFormat;
 @Service
 public class RedirectService {
 
-    private final ShortUrlRepository shortUrlRepository;
     private final ClickEventRepository clickEventRepository;
     private final Clock clock;
+    private final ShortUrlLookupService shortUrlLookupService;
 
     public RedirectService(
-            ShortUrlRepository shortUrlRepository,
             ClickEventRepository clickEventRepository,
-            Clock clock) {
+            Clock clock, ShortUrlLookupService shortUrlLookupService) {
 
-        this.shortUrlRepository = shortUrlRepository;
         this.clickEventRepository = clickEventRepository;
         this.clock = clock;
+        this.shortUrlLookupService = shortUrlLookupService;
     }
 
     @Transactional
@@ -41,7 +40,7 @@ public class RedirectService {
             String userAgent,
             String clientIp) {
 
-        ShortUrl shortUrl = findByShortCode(shortCode);
+        ShortUrl shortUrl = shortUrlLookupService.findByShortCode(shortCode);
         Instant now = clock.instant();
 
         if (!shortUrl.canRedirect(now)) {
@@ -58,14 +57,6 @@ public class RedirectService {
         clickEventRepository.save(clickEvent);
 
         return shortUrl.getOriginalUrl();
-    }
-
-    @Cacheable(cacheNames = "shortUrls", key = "#shortCode")
-    @Transactional(readOnly = true)
-    public ShortUrl findByShortCode(String shortCode) {
-        return shortUrlRepository.findByShortCode(shortCode)
-                .orElseThrow(() ->
-                        new ShortUrlNotFoundException(shortCode));
     }
 
     private String truncate(String value, int maximumLength) {
